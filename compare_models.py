@@ -25,7 +25,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 # set up logging locally
-logging.basicConfig(level=logging.DEBUG, # tipe of massages i select all level (debug, info, warning, error, critical).
+logging.basicConfig(level=logging.INFO, # tipe of massages i select all level (debug, info, warning, error, critical).
                                          # when i use debug i can see all massages if i use info i can see all massages except debug.
                      format='%(asctime)s - %(levelname)s - %(message)s', #format of massages the time and level and massages
                      handlers=[ #tell us where to send the messages , hear we send them to terminal
@@ -133,6 +133,22 @@ def plot_calibration_top3(models, X_test, y_test, output_path):
     """draw Calibration Plots for the top 3 models ans save it to a PNG file."""
     # check if the Calibration Plots are drawn
     logger.info("the calibration plots are drawn")
+
+    test_scores = []
+    for name, model in models.items():
+        y_proba = model.predict_proba(X_test)[:, 1]
+        score = average_precision_score(y_test, y_proba)
+        test_scores.append((name, score))
+    test_scores.sort(key=lambda x: x[1], reverse=True)
+    top_3_names = [x[0] for x in test_scores[:3]]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot([0, 1], [0, 1], "k--", label="Perfectly calibrated") 
+
+    for name in top_3_names:
+        CalibrationDisplay.from_estimator(models[name], X_test, y_test, ax=ax, name=name)
+    
+    ax.set_title("Calibration Curves for Top 3 Models")
     plt.savefig(output_path)
     plt.close()
     logger.info(f"save calibration plots to: {output_path}")
